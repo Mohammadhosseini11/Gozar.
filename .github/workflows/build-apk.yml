@@ -30,10 +30,31 @@ jobs:
           yes | sdkmanager --licenses
           echo "NDK_HOME=$ANDROID_HOME/ndk/27.2.12479018" >> "$GITHUB_ENV"
 
-      - name: Extract project
+      - name: Locate and extract project
         run: |
-          unzip -q gozar-android-source.zip
-          test -d gozar-android
+          if [ -f gozar-android-source.zip ]; then
+            unzip -q gozar-android-source.zip
+          elif [ -f gozar-android-source-github-actions.zip ]; then
+            unzip -q gozar-android-source-github-actions.zip
+          elif [ -f gozar-android-source.zip.zip ]; then
+            unzip -q gozar-android-source.zip.zip
+          elif [ -d app/src/main ]; then
+            echo "Project files appear to be at repository root"
+          else
+            echo "ZIP not found. Repository files:"
+            ls -la
+            exit 1
+          fi
+
+          if [ -d gozar-android ]; then
+            echo "PROJECT_DIR=gozar-android" >> "$GITHUB_ENV"
+          elif [ -d app/src/main ]; then
+            echo "PROJECT_DIR=." >> "$GITHUB_ENV"
+          else
+            echo "Could not find Android project"
+            find . -maxdepth 3 -name build.gradle.kts
+            exit 1
+          fi
 
       - name: Prepare Xray core
         working-directory: gozar-android
